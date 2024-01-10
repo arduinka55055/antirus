@@ -12,7 +12,7 @@ namespace antirus.Util;
 public class API{
     public static readonly string URI = "https://steamcommunity.com/id/";
     public static readonly string URI_ID = "https://steamcommunity.com/profiles/";
-    public static readonly string STEAMKEY = Environment.GetEnvironmentVariable("STEAMKEY") ?? 
+    public static readonly string STEAMKEY = "A68B7BCD1B9EF6DF82025EF757F42BA1" ?? 
                                              throw new Exception("STEAMKEY not found, visit https://steamcommunity.com/dev/apikey to get one");
     public static readonly string FRIENDSURI = "https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key="+STEAMKEY+"&relationship=friend&steamid=";
 

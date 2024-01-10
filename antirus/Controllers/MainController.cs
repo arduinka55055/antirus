@@ -20,4 +20,12 @@ public class MainController : ControllerBase
         await player.LoadFriends();
         return player;
     }
+   [HttpGet]
+   [Route("demo")]
+   public List<Player> Demo()
+   {
+      var lol = new Player("gameplayer55055");
+       lol.LoadPlayer().Wait();
+       return new List<Player>(){lol, new Player("l5cker")};
+   }
 }

@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using antirus.Models;
 using antirus.Util;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SpaServices.AngularCli;
 
 var dotenv = Path.Combine(Directory.GetCurrentDirectory(), ".env");
 DotEnv.Load(dotenv);
@@ -37,6 +38,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseCors();
 app.MapControllerRoute(
