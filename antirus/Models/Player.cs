@@ -1,12 +1,14 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 
 using antirus.Util;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace antirus.Models;
 
@@ -22,31 +24,76 @@ public class Player(string name)
 
 
     public string SteamId { get; set; } = "";
-    public string SteamId64 { get; set; } = "";
+    public string? SteamId64 { get; set; }
     public string Name { get; set; } = name;
     public string Avatar { get; set; } = "";
     public string? Nationality { get; set; }
     public string? MemberSince { get; set; }
     public string? Summary { get; set; }
     public bool IsPrivate { get; set; } = false;
-    public List<Game> Games { get; set; } = new List<Game>();
-    public List<Group> Groups { get; set; } = new List<Group>();
-    public List<Player> Friends { get; set; } = new List<Player>();
+    public List<Game> Games { get; set; } = [];
+    public List<Group> Groups { get; set; } = [];
+    public List<Player> Friends { get; set; } = [];
     public Summary SummaryObj { get; set; } = new Summary();
+
+    private bool _ProfileLoaded = false;
+    private bool _GamesLoaded = false;
+    private bool _FriendsLoaded = false;
+    public bool isCached { get; set; } = false;
+
+    private static ILogger<Player>? _logger = null;
+    private static IMemoryCache? _cache = null;
+    public static void Init(ILogger<Player>? logger=null, IMemoryCache? cache=null){
+        _logger = logger;
+        _cache = cache;
+    }
+
+    //USE THIS TO GET PLAYER, IT ENABLES CACHING
+    public static Player Get(string id){
+        //try to get name from cache
+        if(_cache != null){
+            if(_cache.TryGetValue<Player>(id, out var cachedPlayer)){
+                if(cachedPlayer != null){
+                    _logger?.LogDebug($"Found player {id} in cache");
+                    return cachedPlayer;
+                }
+            }
+        }
+        //if not found, create new
+        _logger?.LogInformation($"Creating new player {id}");
+        Player p = new(id);
+        p.SteamId64 = id;
+        //save to cache
+        p.isCached = true;
+        _cache?.Set(id, p);
+        return p;
+    }
+    private void Cache(){
+        isCached = true;
+        _cache?.Set(SteamId64 ?? Name, this);
+    }
 
     public void OrderGames()
     {
         Games = [.. Games.OrderByDescending(x => x.IsRussian).ThenByDescending(x => x.PlaytimeHours)];
     }
-    public async Task LoadPlayer(){
-        string req = await API.loadPlayer(Name);
+    public async Task LoadPlayer(bool force = false)
+    {
+        if(_ProfileLoaded && !force)
+            return;
+        
+        string req = await API.loadPlayer(SteamId64 ?? Name);
         var tree = XDocument.Parse(req);
         if(req.Contains("The specified profile could not be found.")){
             throw new System.Exception("Player not found");
         }
+        //check rate limit
+        if(tree.Root?.Element("error") != null){
+            throw new System.Exception(tree.Root?.Element("error")?.Value ?? "Ratelimit, cool down our butts");
+        }
         //fill all fields
         SteamId = tree?.Root?.Element("steamID")?.Value ?? "";
-        SteamId64 = tree?.Root?.Element("steamID64")?.Value ?? "";
+        SteamId64 = tree?.Root?.Element("steamID64")?.Value;
         Name = tree?.Root?.Element("steamID")?.Value ?? "";
         //replace html entities using built-in parser
         Name = System.Net.WebUtility.HtmlDecode(Name);
@@ -57,13 +104,14 @@ public class Player(string name)
         Summary = tree?.Root?.Element("summary")?.Value ?? "";
         IsPrivate = tree?.Root?.Element("privacyState")?.Value == "private";
 
-        //retrieve groups from tree
+        //retrieve groups from tree just beacuse its available as a bonus
         var grpnode = tree?.Root?.Element("groups");
         if(grpnode != null){
             foreach (var group in grpnode.Elements("group"))
             {
                 Group g = new()
                 {
+                    Id = group.Element("groupID64")?.Value ?? "",
                     Name = group.Element("groupName")?.Value ?? "",
                     Members = int.Parse(group.Element("memberCount")?.Value ?? "0"),
                     Description = group.Element("headline")?.Value ?? "",
@@ -72,22 +120,26 @@ public class Player(string name)
                 Groups.Add(g);
             }
         }
-
-        //load games
-        //LoadGames();
+        _ProfileLoaded = true;
+        Cache();
     }
     
-    public async Task LoadFriends()
+    public async Task LoadFriends(bool force = false)
     {
+        if(_FriendsLoaded && !force)
+            return;
         //scan thru friends, its JSON, not XML
-        string f = await API.loadFriends(SteamId64);
+        string f = await API.loadFriends(SteamId64 ?? Name);
         if(f.Length == 0){//http error or private profile
             return;
         }
         var fjson = JsonSerializer.Deserialize<JsonElement>(f);
         foreach (var friend in fjson.GetProperty("friendslist").GetProperty("friends").EnumerateArray())
         {
-            Player p = new(friend.GetProperty("steamid").GetString() ?? "");
+            string? id = friend.GetProperty("steamid").GetString();
+            if(string.IsNullOrEmpty(id))
+                continue;
+            Player p = Player.Get(id);
             Friends.Add(p);
         }
         //get friends info in parallel
@@ -105,19 +157,32 @@ public class Player(string name)
                 }
             }
             ));
-
         }
         await Task.WhenAll(tasks);
         //sort friends by russian
-        Friends = Friends.OrderByDescending(x => x.IsRussian(false)).ToList();
+        Friends = Friends.OrderByDescending(x => x.IsRussian).ToList();
+        
+        _FriendsLoaded = true;
     }
-    public async Task LoadGames()
+    public async Task LoadGames(bool force = false)
     {
+        if(_GamesLoaded && !force)
+            return;
+
+        if(string.IsNullOrEmpty(SteamId64)){
+            throw new System.Exception("SteamId64 is null, load player first");
+        }
         //scan thru games
         string greq = await API.loadGames(SteamId64);
         var gtree = XDocument.Parse(greq);
+
+        //check rate limit
+        if(gtree.Root?.Element("error") != null){
+            throw new System.Exception(gtree.Root?.Element("error")?.Value ?? "Ratelimit, cool down our butts");
+        }
+
         if(gtree.Root == null){
-            return;
+            throw new System.Exception("Root node is null, check games of player "+SteamId64);
         }
         foreach (var game in gtree.Root.Elements("games").Elements("game"))
         {
@@ -126,10 +191,12 @@ public class Player(string name)
                 Name = game.Element("name")?.Value ?? "",
                 Appid = game.Element("appID")?.Value ?? "",
                 Playtime = game.Element("hoursOnRecord")?.Value ?? "",
+                Logo = game.Element("logo")?.Value ?? "",
             };
             Games.Add(g);
         }
         OrderGames();
+        _GamesLoaded = true;
     }
 
     public double ProfileScore {
@@ -222,9 +289,8 @@ public class Player(string name)
             List<string> logs = [];
             foreach (var friend in Friends)
             {
-                double rate = friend.IsRussian(false);
-                if(rate > 0){
-                    score += rate;
+                if(IsRussian > 0){
+                    score += IsRussian;
                     logs.Add($"Знайшли русню {friend.SteamId}");
                 }
             }
@@ -237,20 +303,39 @@ public class Player(string name)
         }
     }
 
-    public double IsRussian(bool scanFiends=false){
-        System.Console.WriteLine($"Перевіряємо профіль {Name}");
-
-        double score = ProfileScore + SummaryScore + GameScore + GroupScore;
-        if(scanFiends){
-            score += FriendScore;
+    public double IsRussian {
+        get{
+            double score = ProfileScore + SummaryScore + GameScore + GroupScore;
+            if(Friends.Count > 0){
+                score += FriendScore;
+            }
+            SummaryObj.ScannedRate = score;
+            return score;
         }
-        SummaryObj.ScannedRate = score;
-        return score;
     }
 
     public override string ToString()
     {
-        var coeff = IsRussian(false);
+        var coeff = IsRussian;
         return  $"{(coeff>0 ? "RU:" : "")}{Name}  {(string.IsNullOrEmpty(Nationality)?"":Nationality)} - {coeff} ({SteamId64})";
+    }
+
+    public Player ExcludeJson(JsonParams jsonParams)
+    {
+        if(jsonParams.Full)
+            return this;
+        //make a copy of this object
+        var ret = new Player(Name);
+        //copy all fields except excluded
+        foreach (PropertyInfo prop in typeof(Player).GetProperties())
+        {
+            if(!jsonParams.ExcludedFields.Contains(prop.Name)){
+                //check if property can be set
+                if(prop.CanWrite)
+                    prop.SetValue(ret, prop.GetValue(this));
+            }
+        }
+        return ret;
+        
     }
 }

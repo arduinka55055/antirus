@@ -27,7 +27,20 @@ class Group:
 [DebuggerDisplay("{" + nameof(ToString) + "()}")]
 public class Group
 {
-    public string Name { get; set; } = "";
+    public string Id { get; set; } = "";
+    private string? _name;
+    public string Name { 
+        get{
+            if(string.IsNullOrEmpty(_name)){
+                return "Scan needed, ID: "+Id;
+            }
+            return _name;
+        }
+        set{
+            _name = value;
+        }
+    }
+
     public int Members { get; set; } = 0;
     public string Description { get; set; } = "";
     
@@ -39,6 +52,5 @@ public class Group
         return $"{(IsRussian ? "RU:" : "")}{Name} ({Members} members)";
     }
 
-    [JsonIgnore]
     public bool IsRussian => TextRater.RateText(Description) > 0;
 }

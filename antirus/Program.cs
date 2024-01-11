@@ -3,6 +3,7 @@ using antirus.Models;
 using antirus.Util;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SpaServices.AngularCli;
+using Microsoft.Extensions.Caching.Memory;
 
 var dotenv = Path.Combine(Directory.GetCurrentDirectory(), ".env");
 DotEnv.Load(dotenv);
@@ -17,6 +18,7 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 builder.Services.AddResponseCaching();
 builder.Services.AddResponseCompression();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddRateLimiter(_ => _
         .AddFixedWindowLimiter(policyName: "fixed", options =>
@@ -29,6 +31,8 @@ builder.Services.AddRateLimiter(_ => _
 
 
 var app = builder.Build();
+
+Player.Init(app.Services.GetService<ILogger<Player>>(), app.Services.GetService<IMemoryCache>());
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
