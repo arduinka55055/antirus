@@ -6,10 +6,7 @@ debugger;
 const PROXY_CONFIG = [
   {
     context: [
-      "/weatherforecast",
-      "/main/demo",
-      "swagger",
-      "swagger/v1/swagger.json"
+      "/api/**",
    ],
     proxyTimeout: 10000,
     target: target,

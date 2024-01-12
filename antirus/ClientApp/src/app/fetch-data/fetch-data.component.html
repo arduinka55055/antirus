@@ -1,27 +1,57 @@
-<h1 id="tableLabel">Weather forecast</h1>
+<h1 id="tableLabel">Scan a user</h1>
 
 <p>This component demonstrates fetching data from the server.</p>
 
-<p *ngIf="!users?.length"><em>Loading...</em></p>
+<div>
 
-<table class='table table-striped' aria-labelledby="tableLabel" *ngIf="users.length">
-    <thead>
-      <tr>
-        <th>Steam ID</th>
-        <th>Steam ID64</th>
-        <th>Name</th>
-        <th>Avatar</th>
-        <!-- Add more headers for other fields as needed -->
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let user of users">
-        <td>{{ user.steamId }}</td>
-        <td>{{ user.steamId64 }}</td>
-        <td>{{ user.name }}</td>
-        <td><img src="{{ user.avatar }}" /></td>
-        <!-- Add more cells for other fields as needed -->
-        {{ user.summary }}
-      </tr>
-    </tbody>
-  </table>
+    <div class="form-group">
+      <label for="steamId">Steam ID</label>
+      <input class="form-control" id="steamId" type="text" [(ngModel)]="steamId" />
+    </div>
+    <button class="btn btn-default" (click)="scan()">Scan</button>
+ 
+</div>
+
+<div  *ngIf="user">
+<table class='table table-striped' aria-labelledby="tableLabel">
+  <thead>
+    <tr>
+      <th>Steam ID</th>
+      <th>Steam ID64</th>
+      <th>Name</th>
+      <th>Avatar</th>
+      <!-- Add more headers for other fields as needed -->
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>{{ user.steamId }}</td>
+      <td>{{ user.steamId64 }}</td>
+      <td>{{ user.name }}</td>
+      <td><img src="{{ user.avatar }}" alt="{{ user.name }}"/></td>
+      <!-- Add more cells for other fields as needed -->
+      {{ user.summary }}
+    </tr>
+  </tbody>
+</table>
+
+<mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+  <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+    <button mat-icon-button disabled></button>
+    {{node.item}}
+  </mat-tree-node>
+  <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
+    <button mat-icon-button
+            [attr.aria-label]="'Toggle ' + node.item" matTreeNodeToggle>
+      <mat-icon class="mat-icon-rtl-mirror">
+        {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+      </mat-icon>
+    </button>
+    {{node.item}}
+    @if(node.item){
+      <mat-progress-bar
+          mode="indeterminate"
+          class="example-tree-progress-bar"></mat-progress-bar>
+    }
+  </mat-tree-node>
+</mat-tree>

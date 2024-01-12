@@ -8,8 +8,12 @@
       "schematics": {
         "@schematics/angular:application": {
           "strict": true
+        },
+        "@schematics/angular:component": {
+          "style": "scss"
         }
       },
+      
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
@@ -23,6 +27,8 @@
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            
             "allowedCommonJsDependencies": [
               "oidc-client"
             ],
@@ -31,13 +37,15 @@
             ],
             "styles": [
               "node_modules/bootstrap/dist/css/bootstrap.min.css",
-              "src/styles.css"
+              "src/styles.css",
+              "src/theme.scss"
+              
             ],
             "scripts": []
           },
           "configurations": {
-            "production": {
-              "budgets": [
+            "production": { 
+              "budgets": [ 
                 {
                   "type": "initial",
                   "maximumWarning": "1mb",
@@ -98,6 +106,7 @@
               "src/assets"
             ],
             "styles": [
+              "@angular/material/prebuilt-themes/indigo-pink.css",
               "src/styles.css"
             ],
             "scripts": []
@@ -132,5 +141,8 @@
       }
     }
   },
-  "defaultProject": "antirus"
+  "defaultProject": "antirus",
+  "cli": {
+    "analytics": "601c1243-23e7-49a9-bead-64c82348533b"
+  }
 }
