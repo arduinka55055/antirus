@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
+using System.Text;
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
@@ -43,6 +44,8 @@ public class Player(string name)
 
     private static ILogger<Player>? _logger = null;
     private static IMemoryCache? _cache = null;
+    
+
     public static void Init(ILogger<Player>? logger=null, IMemoryCache? cache=null){
         _logger = logger;
         _cache = cache;
@@ -98,7 +101,7 @@ public class Player(string name)
         //replace html entities using built-in parser
         Name = System.Net.WebUtility.HtmlDecode(Name);
 
-        Avatar = tree?.Root?.Element("avatarIcon")?.Value ?? "";
+        Avatar = tree?.Root?.Element("avatarFull")?.Value ?? "";
         Nationality = tree?.Root?.Element("location")?.Value ?? "";
         MemberSince = tree?.Root?.Element("memberSince")?.Value ?? "";
         Summary = tree?.Root?.Element("summary")?.Value ?? "";
@@ -114,7 +117,8 @@ public class Player(string name)
                     Id = group.Element("groupID64")?.Value ?? "",
                     Name = group.Element("groupName")?.Value ?? "",
                     Members = int.Parse(group.Element("memberCount")?.Value ?? "0"),
-                    Description = group.Element("headline")?.Value ?? "",
+                    Description = (group.Element("headline")?.Value ?? "") + "\r\n<br>" + (group.Element("summary")?.Value ?? ""),
+                    Avatar = group.Element("avatarFull")?.Value ?? "",
                     Invoker = this
                 };
                 Groups.Add(g);
@@ -124,7 +128,7 @@ public class Player(string name)
         Cache();
     }
     
-    public async Task LoadFriends(bool force = false)
+    public async Task LoadFriends(bool force = false, JsonParams jsonParams = default)
     {
         if(_FriendsLoaded && !force)
             return;
@@ -149,7 +153,8 @@ public class Player(string name)
             tasks.Add(Task.Run(async() => {
                 try{
                     await friend.LoadPlayer();
-                    await friend.LoadGames();
+                    if(jsonParams.Games)
+                        await friend.LoadGames();
                 }
                 catch(System.Exception e){
                     Console.WriteLine($"Не вдалося завантажити профіль {friend.Name}");
@@ -197,6 +202,30 @@ public class Player(string name)
         }
         OrderGames();
         _GamesLoaded = true;
+    }
+    public async Task LoadGroupsId(){
+        var tasks = new List<Task>();
+        foreach (var group in Groups)
+        {
+            if(!group.isPartial)
+                continue;
+            tasks.Add(Task.Run(async() => {
+                try{
+                    var data = await API.loadGroup(group.Id);
+                    var tree = XDocument.Parse(data);
+                    group.Name = tree.Root?.Element("groupDetails")?.Element("groupName")?.Value ?? "";
+                    group.Members = int.Parse(tree.Root?.Element("groupDetails")?.Element("memberCount")?.Value ?? "0");
+                    group.Description = (tree.Root?.Element("groupDetails")?.Element("headline")?.Value ?? "") + "\r\n<br>" + (tree.Root?.Element("groupDetails")?.Element("summary")?.Value ?? "");
+                    group.Avatar = tree.Root?.Element("groupDetails")?.Element("avatarFull")?.Value ?? "";
+                }
+                catch(System.Exception e){
+                    Console.WriteLine($"Не вдалося завантажити групу {group.Name}");
+                    Console.WriteLine(e);   
+                }
+            }
+            ));    
+        }
+        await Task.WhenAll(tasks);
     }
 
     public double ProfileScore {
@@ -285,13 +314,20 @@ public class Player(string name)
     }
     public double FriendScore {
         get {
+            //return 0;//fix stackoverflow
             double score = 0;
             List<string> logs = [];
             foreach (var friend in Friends)
             {
-                if(IsRussian > 0){
-                    score += IsRussian;
-                    logs.Add($"Знайшли русню {friend.SteamId}");
+                if(friend.SteamId64 == SteamId64)
+                    continue;
+                var rate = friend.IsRussianSafe();
+                if(rate > 0){
+                    score += rate;
+                    if(rate > 0.5)
+                        logs.Add($"Знайшли кацапа {friend.SteamId64}");
+                    else if(rate > 0)
+                        logs.Add($"Знайшли малороса {friend.SteamId64}");
                 }
             }
             if(Friends.Count != 0){
@@ -313,11 +349,34 @@ public class Player(string name)
             return score;
         }
     }
+    public double IsRussianSafe(){
+        double score = ProfileScore + SummaryScore + GameScore + GroupScore;
+        return score;
+    }
 
     public override string ToString()
     {
         var coeff = IsRussian;
         return  $"{(coeff>0 ? "RU:" : "")}{Name}  {(string.IsNullOrEmpty(Nationality)?"":Nationality)} - {coeff} ({SteamId64})";
+    }
+
+    public string Report {
+        get {
+            StringBuilder sb = new(1024);
+            //use Markdown for formatting
+            sb.Append($"**Звіт користувача {Name} ({SteamId64})**\r\n");
+            if(IsRussian>0){
+                sb.Append($"__**Профіль малорос**__\r\n");
+            }
+            sb.Append("```diff\r\n");
+            foreach (var log in SummaryObj.Logs)
+            {
+                sb.Append($"- {log}\r\n");
+            }
+            sb.Append("```\r\n");
+            
+            return sb.ToString();
+        }
     }
 
     public Player ExcludeJson(JsonParams jsonParams)

@@ -1,0 +1,22 @@
+<div class="user-container">
+    <!-- User Information -->
+    <div class="user-info">
+      <img [src]="user.avatar" alt="User Avatar" class="avatar">
+      <div class="user-details">
+        <h2>{{ user.name }}</h2>
+        <p>{{ user.nationality }}</p>
+        <p>{{ user.memberSince }}</p>
+        <!--show summary as raw html-->
+        <p [innerHTML]="user.summary"></p>
+      </div>
+    </div>
+  
+    <!-- Expandable Scores -->
+    <div class="scores-container">
+      <div class="profile-score">Profile Score: {{ user.profileScore }}</div>
+      <div class="summary-score">Summary Score: {{ user.summaryScore }}</div>
+      <div class="game-score">Game Score: {{ user.gameScore }}</div>
+      <div class="group-score">Group Score: {{ user.groupScore }}</div>
+      <div class="friend-score">Friend Score: {{ user.friendScore }}</div>
+    </div>
+</div>

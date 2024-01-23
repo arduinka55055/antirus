@@ -4,8 +4,8 @@ namespace antirus.Util;
 
 public static class TextRater
 {
-    private static readonly string[] russianWords = new string[]
-    {
+    private static readonly string[] russianWords =
+    [
         "росси",
         "русск",
         "россия",
@@ -13,14 +13,30 @@ public static class TextRater
         "russia",
         "russki",
         "вагнер",
+        "wagner",
+        //ruscism characters and words
+        "☭",
+        "🇷🇺",
+        "днр",
+        "dnr",
+        "лнр",
+        "lnr",
+        "омон",
+        "omon",
+        "фсб",
+        "fsb",
+        "чвк",
+        "донбасс",
+        "donbass",
+        "рф",
         //russian only cyrillic letters 
         "ы",
         "ъ",
         "э",
         "ё"
-    };
-    private static readonly string[] ukrainianWords = new string[]
-    {
+    ];
+    private static readonly string[] ukrainianWords =
+    [
         "україн",
         "ukrain",
         "київ",
@@ -35,7 +51,7 @@ public static class TextRater
         "ґ",
         "є",
         "і"
-    };
+    ];
 
     public static int RateText(string text)
     {

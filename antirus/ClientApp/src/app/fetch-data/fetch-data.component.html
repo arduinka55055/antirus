@@ -4,54 +4,55 @@
 
 <div>
 
-    <div class="form-group">
-      <label for="steamId">Steam ID</label>
-      <input class="form-control" id="steamId" type="text" [(ngModel)]="steamId" />
+  <div class="input-group mb-3">
+    <div class="input-group-prepend">
+      <label class="input-group-text" for="inputGroupSelect01">User SteamID:</label>
     </div>
-    <button class="btn btn-default" (click)="scan()">Scan</button>
- 
+    <input type="text" class="form-control" placeholder="Username/SteamID" aria-label="steamId" id="steamId" type="text" [(ngModel)]="steamId">
+    <div class="input-group-append">
+      <button class="btn btn-outline-secondary" type="button" (click)="scan()">Scan</button>
+    </div>
+  </div>
+
 </div>
+<div *ngIf="user !== null && (user?.name?.length ?? 0)>0">
+  <app-userview [user]="user"></app-userview>
+  <div *ngIf="user.groups !== undefined && user.groups[0] !== undefined">
+    <p>Групи:</p>
+    <div class="grouplist">
+      <app-groupview [group]="group" *ngFor="let group of user.groups"></app-groupview>
+    </div>
 
-<div  *ngIf="user">
-<table class='table table-striped' aria-labelledby="tableLabel">
-  <thead>
-    <tr>
-      <th>Steam ID</th>
-      <th>Steam ID64</th>
-      <th>Name</th>
-      <th>Avatar</th>
-      <!-- Add more headers for other fields as needed -->
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>{{ user.steamId }}</td>
-      <td>{{ user.steamId64 }}</td>
-      <td>{{ user.name }}</td>
-      <td><img src="{{ user.avatar }}" alt="{{ user.name }}"/></td>
-      <!-- Add more cells for other fields as needed -->
-      {{ user.summary }}
-    </tr>
-  </tbody>
-</table>
+  <div *ngIf="user.games !== undefined && user.games[0] !== undefined">
+    <p>Кацапські ігри:</p>
+    <div class="gamelist" *ngIf="user.ruGames?.length ?? 0 >0">
+      <app-gameview [game]="game" *ngFor="let game of user.ruGames"></app-gameview>
+    </div>
+    <button class="btn btn-primary" (click)="showEnGames=!showEnGames">Show all games</button>
+    <div *ngIf="showEnGames">
+      <p>Інші ігри:</p>
+      <div class="gamelist">
+          <app-gameview [game]="game" *ngFor="let game of user.enGames"></app-gameview>
+      </div>
+    </div>  
 
-<mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
-  <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
-    <button mat-icon-button disabled></button>
-    {{node.item}}
-  </mat-tree-node>
-  <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
-    <button mat-icon-button
-            [attr.aria-label]="'Toggle ' + node.item" matTreeNodeToggle>
-      <mat-icon class="mat-icon-rtl-mirror">
-        {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
-      </mat-icon>
-    </button>
-    {{node.item}}
-    @if(node.item){
-      <mat-progress-bar
-          mode="indeterminate"
-          class="example-tree-progress-bar"></mat-progress-bar>
-    }
-  </mat-tree-node>
-</mat-tree>
+  </div>
+
+  <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+      <button mat-icon-button disabled></button>
+      {{node.item}}
+    </mat-tree-node>
+    <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding>
+      <button mat-icon-button [attr.aria-label]="'Toggle ' + node.item" matTreeNodeToggle>
+        <mat-icon class="mat-icon-rtl-mirror">
+          {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+        </mat-icon>
+      </button>
+      {{node.item}}
+      <mat-progress-bar *ngIf="node.isLoading" mode="indeterminate"
+        class="example-tree-progress-bar"></mat-progress-bar>
+
+    </mat-tree-node>
+  </mat-tree>
+</div>

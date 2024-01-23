@@ -1,0 +1,11 @@
+.gamelist, .grouplist{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%/2, max(600px, 100%/5)), 1fr));
+    grid-auto-rows: min-content;
+    grid-row-gap: 10px !important;
+
+    
+    padding: 10px;
+    border: 1px solid #ccc; // Add your desired border styles
+    border-radius: 5px; // Add your desired border radius
+}

@@ -1,9 +1,17 @@
+using System.Globalization;
 using System.Threading.RateLimiting;
+using antirus.bot;
 using antirus.Models;
 using antirus.Util;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SpaServices.AngularCli;
 using Microsoft.Extensions.Caching.Memory;
+
+//set invariant culture for the whole app
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 
 var dotenv = Path.Combine(Directory.GetCurrentDirectory(), ".env");
 DotEnv.Load(dotenv);
@@ -49,5 +57,6 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Main}/{action=Index}/{id?}");
 
+Bot.Launch();
 
 app.Run();

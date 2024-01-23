@@ -1,0 +1,32 @@
+.gameview-root {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border: 1px solid #ccc; // Add your desired border styles
+    border-radius: 5px; // Add your desired border radius
+    width: fit-content;
+  
+    .gameview-img-wrapper {
+      flex-shrink: 0;
+      margin-right: 15px; // Adjust the margin as needed
+    }
+  
+    .gameview-img-descr {
+      flex-grow: 1;
+  
+      h3 {
+        margin-bottom: 5px; // Adjust the margin as needed
+      }
+  
+      a {
+        color: #007bff; // Add your desired link color
+        text-decoration: none;
+  
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+  

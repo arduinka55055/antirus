@@ -42,12 +42,11 @@ public class MainController : ControllerBase
         await player.LoadGames();
         return player.Games;
     }
-    [HttpGet("{id}/friends")]
-    public async Task<List<Player>> GetFriends(string id)
+    [HttpPost("{id}/friends")]
+    public async Task<List<Player>> GetFriends(string id, JsonParams jsonParams)
     {
         Player player = Player.Get(id);
-        await player.LoadFriends();
-        return player.Friends;
+        await player.LoadFriends(false,jsonParams);
+        return player.Friends.Select(friend => friend.ExcludeJson(jsonParams)).ToList();
     }
-    
 }
