@@ -54,6 +54,9 @@ public class Group
     {
         return $"{(IsRussian ? "RU:" : "")}{Name} ({Members} members)";
     }
+    public string ToSteamGID(){
+        return API.URI_GRP+Id;
+    }
 
     public bool IsRussian => TextRater.RateText(Description) > 0;
 }

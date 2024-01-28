@@ -10,12 +10,13 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text.Json;
+using System.Text;
 
 namespace antirus.bot;
 
 public class Bot {
     private DiscordSocketClient _client;
-    private static readonly string[] messages = {
+    private static readonly string[] messages = [
         "майнинг біткоїнтів 🪙",
         "грію процесор 🔥",
         "reforce rtx 9090ti 🎮",
@@ -29,7 +30,7 @@ public class Bot {
         "розчехляємо проксі 🛠",
         "тут може бути ваша реклама 📺",
         "поцілуй мене за блискучий металевий зад 🤖"
-    };
+    ];
     private Task SetGame() => _client.SetGameAsync(messages[new Random().Next(0, messages.Length)]);
     private Task Log(LogMessage msg)
     {
@@ -37,7 +38,7 @@ public class Bot {
         return Task.CompletedTask;
     }
     public static void Launch() => new Bot().MainAsync().GetAwaiter().GetResult();
-    public async Task EmbedLoadLinks(SocketMessageComponent interaction){
+    public async Task EmbedLoadFriends(SocketMessageComponent interaction){
         //tell the user we're waiting
         await interaction.DeferLoadingAsync();
         //get the player steamcommunity url from message
@@ -54,20 +55,42 @@ public class Bot {
         embed.WithDescription(player.Report);
         //update the message
         await interaction.Message.ModifyAsync(msg => msg.Embed = embed.Build());
+        //create new ComponentBuilder and fill it with buttons without first button
+        var button = new ComponentBuilder();
+        button.WithButton("Посилання 📜",customId: "loadLinks",ButtonStyle.Success);
+        //add the buttons to the message
+        await interaction.Message.ModifyAsync(msg => msg.Components = button.Build());
+        await interaction.FollowupAsync("Завантаження завершено", ephemeral: true);
+    }
+    public async Task EmbedLoadLinks(SocketMessageComponent interaction){
+        //tell the user we're waiting
+        await interaction.DeferLoadingAsync();
+        //get the player steamcommunity url from message
+        var url = interaction.Message.Embeds.First().Url;
+        //get the player
+        var player = Player.Get(url.Split("/").Last());
+        //lambda that returns emoji for RU or empty string
+        static string emoji(bool p) => p ? "🐖" : "";
+        // for each element return [name](steamcommunity link)
+        StringBuilder sb = new();
+        var linksGrp = player.Groups.Select(group => $"[{emoji(group.IsRussian)}{group.Name}]({group.ToSteamGID()})");
+        var linksFriends = player.Friends.Select(friend => $"[{emoji(friend.IsRussian>0)}{friend.Name}]({friend.ToSteamGID()})");
+        if(linksGrp.Any())
+            sb.AppendLine("## Групи:\n"+string.Join(", ",linksGrp));
+        if(linksFriends.Any())
+            sb.AppendLine("## Друзі:\n"+string.Join(", ",linksFriends));
+        sb.AppendLine($"### Посилання на ігри🎮: [Steam]({API.URI_ID+player.SteamId64}/games/?tab=all)");
+        sb.AppendLine($"### Посилання на рецензії📜: [Steam]({API.URI_ID+player.SteamId64}/reviews/)");
+        sb.AppendLine($"### Посилання на скріншоти📷: [Steam]({API.URI_ID+player.SteamId64}/screenshots/)");
+        
         //create a new embed for the links
         var linksEmbed = new EmbedBuilder();
-        linksEmbed.WithTitle("Посилання на профіль");
-        linksEmbed.WithDescription($"[Steam]({player.SteamId64})");
-        //add the links to the message
-        //await interaction.Message.ModifyAsync(msg => msg.Embed = linksEmbed.Build());
-        //remove the button
-        await interaction.Message.ModifyAsync(msg => msg.Components = new ComponentBuilder().Build());
-        //tell that we're done
-        await interaction.FollowupAsync("done");
+        linksEmbed.WithTitle("Посилання для перевірки 🔍");
+        linksEmbed.WithDescription(sb.ToString());
+        //respond with the message only to the user
+        await interaction.FollowupAsync(embed: linksEmbed.Build(), ephemeral: true);
         Console.WriteLine("done");
 
-        
-        //
     }
 
     public async Task MainAsync()
@@ -96,7 +119,12 @@ public class Bot {
         _client.ButtonExecuted += async (interaction) =>
         {
             Console.WriteLine(interaction.Data.CustomId);
-            await EmbedLoadLinks(interaction);
+            if (interaction.Data.CustomId == "loadFriends")
+                await EmbedLoadFriends(interaction);
+            else if (interaction.Data.CustomId == "loadLinks")
+                await EmbedLoadLinks(interaction);
+            else
+                await interaction.RespondAsync("Гадки не маю що це таке");
         };
 
         
@@ -154,8 +182,10 @@ public class Bot {
         if (message.Content.Contains("https://steamcommunity.com/"))
         {
             await _client.SetGameAsync("пошук малоросів 🔍");
+            //erase last / if any
+            var url = message.Content.TrimEnd('/');
             //extract last part of url, which is the steam id or vanity url
-            var url = message.Content.Split("/").Last();
+            url = url.Split("/").Last();
             var player = Player.Get(url);
             await player.LoadPlayer();
             await player.LoadGames();
@@ -167,7 +197,9 @@ public class Bot {
             embedBuilder.WithColor(player.IsRussian>0.01 ? Color.Red : Color.Green);
             //make a button that invokes EmbedLoadLinks
             var button = new ComponentBuilder()
-                .WithButton("Завантажити посилання",customId: "loadLinks",ButtonStyle.Primary);
+                .WithButton("Свинодрузі 🐖",customId: "loadFriends",ButtonStyle.Primary)
+                .WithButton("Посилання 📜",customId: "loadLinks",ButtonStyle.Success);
+                //.WithButton("Завантажити ігри 🎮",customId: "loadGames",ButtonStyle.Success);
                 
             //add the button to the embe
             

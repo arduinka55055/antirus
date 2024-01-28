@@ -359,6 +359,9 @@ public class Player(string name)
         var coeff = IsRussian;
         return  $"{(coeff>0 ? "RU:" : "")}{Name}  {(string.IsNullOrEmpty(Nationality)?"":Nationality)} - {coeff} ({SteamId64})";
     }
+    public string ToSteamGID(){
+        return API.URI_ID+SteamId64;
+    }
 
     public string Report {
         get {
@@ -378,6 +381,7 @@ public class Player(string name)
             return sb.ToString();
         }
     }
+    
 
     public Player ExcludeJson(JsonParams jsonParams)
     {
