@@ -281,7 +281,7 @@ public class Player(string name)
             {
                 if(game.IsRussian){
                     score += 1;
-                    logs.Add($"Знайшли кацапську гру {game.Name}");
+                    logs.Add($"Кацапська гра {game.Name}");
                 }
             }
             if(Games.Count != 0){
@@ -301,7 +301,7 @@ public class Player(string name)
             {
                 if(group.IsRussian){
                     score += 1;
-                    logs.Add($"Знайшли кацапську групу {group.Name}");
+                    logs.Add($"Кацапська групу {group.Name}");
                 }
             }
             if(Groups.Count != 0){
@@ -325,9 +325,9 @@ public class Player(string name)
                 if(rate > 0){
                     score += rate;
                     if(rate > 0.5)
-                        logs.Add($"Знайшли кацапа {friend.SteamId64}");
+                        logs.Add($"Кацап {friend.SteamId64}");
                     else if(rate > 0)
-                        logs.Add($"Знайшли малороса {friend.SteamId64}");
+                        logs.Add($"Малорос {friend.SteamId64}");
                 }
             }
             if(Friends.Count != 0){

@@ -84,12 +84,25 @@ public class Bot {
         sb.AppendLine($"### Посилання на скріншоти📷: [Steam]({API.URI_ID+player.SteamId64}/screenshots/)");
         
         //create a new embed for the links
-        var linksEmbed = new EmbedBuilder();
-        linksEmbed.WithTitle("Посилання для перевірки 🔍");
-        linksEmbed.WithDescription(sb.ToString());
+        //var linksEmbed = new EmbedBuilder();
+        //linksEmbed.WithTitle("Посилання для перевірки 🔍");
+        //linksEmbed.WithDescription(sb.ToString());
         //respond with the message only to the user
-        await interaction.FollowupAsync(embed: linksEmbed.Build(), ephemeral: true);
-        Console.WriteLine("done");
+        ///await interaction.FollowupAsync(embed: linksEmbed.Build(), ephemeral: true);
+        //safe variant that fixes 2000 char limit, if it exceeds 2000 char, it will output the message up to newline and attach a txt file
+        if(sb.Length>2000){
+            //get the first 2000 chars and cut where latest newline is
+            var firstPart = sb.ToString().Substring(0,2000);
+            var lastNewline = firstPart.LastIndexOf('\n');
+            //output
+            await interaction.FollowupAsync(firstPart.Substring(0,lastNewline), ephemeral: true);
+            //create a file with the rest of the message
+            var stream = new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
+            await interaction.FollowupWithFileAsync(stream, "перевірка.txt", "Великий компромат тут:", ephemeral: true);
+        }else
+            await interaction.FollowupAsync(sb.ToString(), ephemeral: true);
+        
+        Console.WriteLine(sb.ToString());
 
     }
 
