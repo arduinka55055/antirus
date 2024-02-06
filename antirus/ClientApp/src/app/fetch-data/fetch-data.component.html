@@ -48,10 +48,10 @@
       </mat-icon>
     </button>
     {{node.item}}
-    @if(node.item){
       <mat-progress-bar
+          *ngIf="treeControl.isExpanded(node) && node.isLoading"
           mode="indeterminate"
           class="example-tree-progress-bar"></mat-progress-bar>
-    }
+
   </mat-tree-node>
 </mat-tree>
