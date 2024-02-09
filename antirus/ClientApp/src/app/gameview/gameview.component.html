@@ -1,0 +1,10 @@
+<!-- generate an HTML layout with a game icon, description and steam link with appid-->
+<div class="gameview-root">
+    <div class="gameview-img-wrapper">
+        <img [src]="game.logo" alt="game.name" height="100">
+    </div>
+    <div class="gameview-img-descr">
+        <h3>{{ getNameAll }}</h3>
+        <a [href]="gameStoreLink" target="_blank">Steam Store</a>
+    </div>
+</div>

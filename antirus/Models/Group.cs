@@ -29,6 +29,8 @@ public class Group
 {
     public string Id { get; set; } = "";
     private string? _name;
+    public bool isPartial => string.IsNullOrEmpty(_name);
+
     public string Name { 
         get{
             if(string.IsNullOrEmpty(_name)){
@@ -43,6 +45,7 @@ public class Group
 
     public int Members { get; set; } = 0;
     public string Description { get; set; } = "";
+    public string Avatar { get; set; } = "";
     
     [JsonIgnore]
     public Player? Invoker { get; set; } = null;//backref to user in a group
@@ -50,6 +53,9 @@ public class Group
     public override string ToString()
     {
         return $"{(IsRussian ? "RU:" : "")}{Name} ({Members} members)";
+    }
+    public string ToSteamGID(){
+        return API.URI_GRP+Id;
     }
 
     public bool IsRussian => TextRater.RateText(Description) > 0;

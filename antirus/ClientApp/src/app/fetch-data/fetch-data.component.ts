@@ -11,6 +11,8 @@ import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {MatIconModule} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTreeModule} from '@angular/material/tree';
+import { User } from '../Models/User';
+import { DynamicUser } from '../Models/DynamicUser';
 
 /** Flat node with expandable and level information */
 export class DynamicFlatNode {
@@ -22,32 +24,63 @@ export class DynamicFlatNode {
   ) {}
 }
 
-/**
- * Database for dynamic data. When expanding a node in the tree, the data source will need to fetch
- * the descendants data from the database.
- */
-@Injectable({providedIn: 'root'})
-export class DynamicDatabase {
-  dataMap = new Map<string, string[]>([
-    ['Fruits', ['Apple', 'Orange', 'Banana']],
-    ['Vegetables', ['Tomato', 'Potato', 'Onion']],
-    ['Apple', ['Fuji', 'Macintosh']],
-    ['Onion', ['Yellow', 'White', 'Purple']],
-  ]);
+//database with actual REST API calls
+// List<User> - show as tree
+//      User - a quick summary
+//              Email 
+//              Name
+//              Phone
+//              other info via Object.keys
 
-  rootLevelNodes: string[] = ['Fruits', 'Vegetables'];
+@Injectable({providedIn: 'root'})
+export class RestDatabase {
+  data : DynamicUser | undefined;
+  rootLevelNodes: string[] = ['Friends'];
+  http: HttpClient | undefined;
+  baseUrl: string | undefined;
 
   /** Initial data from database */
   initialData(): DynamicFlatNode[] {
     return this.rootLevelNodes.map(name => new DynamicFlatNode(name, 0, true));
   }
+  init(http: HttpClient, @Inject('BASE_URL') baseUrl: string) {
+    this.http = http;
+    this.baseUrl = baseUrl;
+  }
 
   getChildren(node: string): string[] | undefined {
-    return this.dataMap.get(node);
+    //get User as object and return keys or a value if it's a key
+    if (node == "Friends") {
+      if (!this.data) {
+        if(!this.http || !this.baseUrl) throw new Error("Database not initialized");
+        this.data = new DynamicUser("76561198045920783", this.http, this.baseUrl);
+      }
+
+    }
+
+    //check if node is a key
+    if (this.data && this.data.hasOwnProperty(node)) {
+      //emulate this.data[node], cast User to any to access properties
+      let value = (this.data as any)[node];
+      if (typeof value== "object") {
+        return Object.keys(value);
+      }
+      else {
+        return [value as string];
+      }
+    }
+    //if not then return keys as shown in interface
+    else if (this.data) {
+      return Object.keys(this.data);
+    }
+    else {
+      return undefined;
+    }
   }
 
   isExpandable(node: string): boolean {
-    return this.dataMap.has(node);
+    if(this.data === undefined) return false;
+    return this.getChildren(node) !== undefined;
   }
 }
 /**
@@ -70,7 +103,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
   constructor(
     private _treeControl: FlatTreeControl<DynamicFlatNode>,
-    private _database: DynamicDatabase,
+    private _database: RestDatabase,
   ) {}
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
@@ -145,7 +178,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 @Component({
   selector: 'app-fetch-data',
   templateUrl: './fetch-data.component.html',
-  styleUrls: ['./fetch-data.component.css'],
+  styleUrls: ['./fetch-data.component.scss'],
 })
 export class FetchDataComponent {
 
@@ -160,18 +193,20 @@ export class FetchDataComponent {
 
   hasChild = (_: number, _nodeData: DynamicFlatNode) => _nodeData.expandable;
 
+  public showEnGames: boolean = false;
 
-  public user!: User | null;
+  public user!: DynamicUser | null;
   public steamId: string;
   public loading: boolean = false;
 
   private baseUrl: string;
   private http: HttpClient;
 
-  constructor(database: DynamicDatabase, http: HttpClient, @Inject('BASE_URL') baseUrl: string) {
+  constructor(database: RestDatabase, http: HttpClient, @Inject('BASE_URL') baseUrl: string) {
 
     this.treeControl = new FlatTreeControl<DynamicFlatNode>(this.getLevel, this.isExpandable);
     this.dataSource = new DynamicDataSource(this.treeControl, database);
+    database.init(http, baseUrl);
 
     this.dataSource.data = database.initialData();
 
@@ -183,64 +218,7 @@ export class FetchDataComponent {
   public scan() {
     if (this.loading) return;
     this.loading = true;
-    this.user = null;
-    this.http.post<User>(this.baseUrl + 'api/Main/' + this.steamId, {
-      
-    }).subscribe({
-      next: (result) => {
-        this.user = result;
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error(error);
-        alert("Error: " + error.error);
-        this.loading = false;
-      }
-    });
+    this.user = new DynamicUser(this.steamId, this.http, this.baseUrl);
+    this.loading = false;
   }
-}
-
-
-
-interface Game {
-  name: string;
-  appid: string;
-  playtime: string;
-  isRussian: boolean;
-}
-
-interface Group {
-  name: string;
-  members: number;
-  description: string;
-}
-
-interface SummaryObj {
-  profileLogs: string[];
-  descriptionLogs: string[];
-  groupLogs: string[];
-  gameLogs: string[];
-  friendLogs: string[];
-  logs: string[];
-  scannedRate: number;
-}
-
-interface User {
-  steamId: string;
-  steamId64: string;
-  name: string;
-  avatar: string;
-  nationality: string;
-  memberSince: string;
-  summary: string;
-  isPrivate: boolean;
-  games: Game[];
-  groups: Group[];
-  friends: string[];
-  summaryObj: SummaryObj;
-  profileScore: number;
-  summaryScore: number;
-  gameScore: number;
-  groupScore: number;
-  friendScore: number;
 }

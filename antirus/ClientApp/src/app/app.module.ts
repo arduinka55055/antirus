@@ -52,6 +52,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
+import { GameviewComponent } from './gameview/gameview.component';
+import { UserviewComponent } from './userview/userview.component';
+import { GroupviewComponent } from './groupview/groupview.component';
 
 
 @NgModule({
@@ -60,7 +63,10 @@ import { MatTableModule } from '@angular/material/table';
     NavMenuComponent,
     HomeComponent,
     CounterComponent,
-    FetchDataComponent
+    FetchDataComponent,
+    GameviewComponent,
+    UserviewComponent,
+    GroupviewComponent
   ],
   imports: [
     BrowserModule.withServerTransition({ appId: 'ng-cli-universal' }),

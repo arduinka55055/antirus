@@ -11,6 +11,7 @@ namespace antirus.Util;
 
 public class API{
     public static readonly string URI = "https://steamcommunity.com/id/";
+    public static readonly string URI_GRP = "https://steamcommunity.com/gid/";
     public static readonly string URI_ID = "https://steamcommunity.com/profiles/";
     public static readonly string? STEAMKEY = Environment.GetEnvironmentVariable("STEAMKEY");
     public static readonly string FRIENDSURI = "https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key="+STEAMKEY+"&relationship=friend&steamid=";
@@ -32,6 +33,10 @@ public class API{
     //xml request
     public static async Task<string> loadGames(string id){
         return await CachedRequest.Get(GetNameID(id)+"/games?xml=1");
+    }
+    //xml request
+    public static async Task<string> loadGroup(string id){
+        return await CachedRequest.Get(URI_GRP+id+"/memberslistxml/?xml=1");
     }
 
     //json request
