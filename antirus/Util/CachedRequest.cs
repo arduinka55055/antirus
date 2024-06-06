@@ -39,5 +39,10 @@ namespace antirus.Util
                 }
             }
         }
+        public static void ClearCache()
+        {
+            Directory.Delete(cacheDir, false);
+            Directory.CreateDirectory(cacheDir);
+        }
     }
 }

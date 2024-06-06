@@ -98,7 +98,10 @@ public class Bot {
             await interaction.FollowupAsync(firstPart.Substring(0,lastNewline), ephemeral: true);
             //create a file with the rest of the message
             var stream = new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
-            await interaction.FollowupWithFileAsync(stream, "перевірка.txt", "Великий компромат тут:", ephemeral: true);
+            //count 🐖
+            var count = player.Friends.Count(friend => friend.IsRussian>0);
+            var pigAppendix = count>0 ? $"\n\n🐖 {count} свинодрузів" : "";
+            await interaction.FollowupWithFileAsync(stream, "check.md", "Великий компромат тут:" + pigAppendix, ephemeral: true);
         }else
             await interaction.FollowupAsync(sb.ToString(), ephemeral: true);
         
@@ -117,8 +120,7 @@ public class Bot {
         _client.Log += Log;
         _client.Ready += Client_Ready;
 
-        var token = Environment.GetEnvironmentVariable("DISCORDTOKEN");
-        // var token = File.ReadAllText("token.txt");
+        var token = Environment.GetEnvironmentVariable("DISCORDTOKEN") ?? File.ReadAllText("D:/https/token.txt");
         // var token = JsonConvert.DeserializeObject<AConfigurationClass>(File.ReadAllText("config.json")).Token;
 
         await _client.LoginAsync(TokenType.Bot, token);
@@ -127,6 +129,13 @@ public class Bot {
         _client.MessageReceived += async (message) =>
         {
             await onReceivedMsg(message);
+        };
+        _client.PresenceUpdated += async (user, presence, _) =>
+        {
+            if (user.Id == 1234567890)
+            {
+                await SetGame();
+            }
         };
 
         _client.ButtonExecuted += async (interaction) =>
@@ -144,9 +153,10 @@ public class Bot {
         _client.SlashCommandExecuted += async (interaction) =>
         {
            //reply with ping
-              if (interaction.CommandName == "first-command")
+              if (interaction.CommandName == "dropcache")
               {
-                //await onReceivedMsg(interaction);
+                    CachedRequest.ClearCache();
+                    await interaction.RespondAsync("Кеш даних скинуто!");
               }
               await interaction.RespondAsync("pong!");
         };
@@ -163,15 +173,15 @@ public class Bot {
         var guildCommand = new SlashCommandBuilder();
 
         // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
-        guildCommand.WithName("first-command");
+        guildCommand.WithName("dropcache");
 
         // Descriptions can have a max length of 100.
-        guildCommand.WithDescription("This is my first guild slash command!");
+        guildCommand.WithDescription("Скинути кеш даних (робити нечасто [раз на тиждень] щоб Гейб не дав банан)");
 
         // Let's do our global command
         var globalCommand = new SlashCommandBuilder();
-        globalCommand.WithName("first-global-command");
-        globalCommand.WithDescription("This is my first global slash command");
+        globalCommand.WithName("dropcache");
+        globalCommand.WithDescription("Скинути кеш даних (робити нечасто [раз на тиждень] щоб Гейб не дав банан)");
 
         try
         {
@@ -192,11 +202,16 @@ public class Bot {
     }
     private async Task onReceivedMsg(SocketMessage message)
     {
-        if (message.Content.Contains("https://steamcommunity.com/"))
+        if (message.Content.Contains("https://steamcommunity.com/") || message.Content.StartsWith("765611"))
         {
             await _client.SetGameAsync("пошук малоросів 🔍");
-            //erase last / if any
-            var url = message.Content.TrimEnd('/');
+            string url;
+            //check raw steamid
+            if(message.Content.StartsWith("765611"))
+                url = message.Content.Split(" ").First();//get first word
+            else
+                //erase last / if any
+                url = message.Content.TrimEnd('/');
             //extract last part of url, which is the steam id or vanity url
             url = url.Split("/").Last();
             var player = Player.Get(url);
