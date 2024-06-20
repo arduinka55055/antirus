@@ -39,6 +39,7 @@ public class Bot {
     }
     public static void Launch() => new Bot().MainAsync().GetAwaiter().GetResult();
     public async Task EmbedLoadFriends(SocketMessageComponent interaction){
+        try{
         //tell the user we're waiting
         await interaction.DeferLoadingAsync();
         //get the player steamcommunity url from message
@@ -52,7 +53,7 @@ public class Bot {
         Console.WriteLine(player.FriendScore);
         //update report in embed
         var embed = interaction.Message.Embeds.First().ToEmbedBuilder();
-        embed.WithDescription(player.Report);
+        embed.WithDescription(player.Report[..Math.Min(2000, player.Report.Length)]);
         //update the message
         await interaction.Message.ModifyAsync(msg => msg.Embed = embed.Build());
         //create new ComponentBuilder and fill it with buttons without first button
@@ -61,6 +62,19 @@ public class Bot {
         //add the buttons to the message
         await interaction.Message.ModifyAsync(msg => msg.Components = button.Build());
         await interaction.FollowupAsync("Завантаження завершено", ephemeral: true);
+        }
+        catch(Exception e){
+            Console.WriteLine(e.Message);
+            await interaction.FollowupAsync("Тут настільки багато кацапів, що я завис від люті", ephemeral: true);
+            //send err and stacktrace limited to 1000 chars as a separate message
+            await interaction.FollowupAsync("## " + e.Message, ephemeral: true);
+            StringBuilder sb = new("```cs\n",2000);
+            //copy stacktrace to stringbuilder (1980 chars max)
+            if(e.StackTrace != null)
+                sb.Append(e.StackTrace.AsSpan(0,Math.Min(1980,e.StackTrace.Length)));
+            sb.Append("\n```");
+            await interaction.FollowupAsync(sb.ToString(), ephemeral: true);
+        }
     }
     public async Task EmbedLoadLinks(SocketMessageComponent interaction){
         //tell the user we're waiting
@@ -186,7 +200,7 @@ public class Bot {
         try
         {
             // With global commands we don't need the guild.
-            //await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
+            await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
             // Using the ready event is a simple implementation for the sake of the example. Suitable for testing and development.
             // For a production bot, it is recommended to only run the CreateGlobalApplicationCommandAsync() once for each command.
         }
